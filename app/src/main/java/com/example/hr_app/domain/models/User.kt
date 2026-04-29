@@ -7,3 +7,14 @@ data class User(
     val role: UserRole,
     val createdAt: String
 )
+
+enum class UserRole(val value: String) {
+    APPLICANT("applicant"),
+    EMPLOYER("employer");
+
+    companion object {
+        fun fromString(value: String): UserRole {
+            return entries.first { it.value.equals(value, ignoreCase = true) }
+        }
+    }
+}
