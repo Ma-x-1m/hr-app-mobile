@@ -1,4 +1,4 @@
-package com.example.hr_app.ui.theme
+package com.example.hr_app.presentation.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
