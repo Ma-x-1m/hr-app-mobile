@@ -11,6 +11,9 @@ import com.example.hr_app.presentation.screens.chat.ChatScreen
 import com.example.hr_app.presentation.screens.chat.ConversationsScreen
 import com.example.hr_app.presentation.screens.auth.LoginScreen
 import com.example.hr_app.presentation.screens.auth.RegisterScreen
+import com.example.hr_app.presentation.screens.profile.ProfileScreen
+import com.example.hr_app.presentation.screens.settings.ChangePasswordScreen
+import com.example.hr_app.presentation.screens.settings.SettingsScreen
 import com.example.hr_app.presentation.screens.resumes.MyResumesScreen
 import com.example.hr_app.presentation.screens.resumes.ResumeEditScreen
 import com.example.hr_app.presentation.screens.vacancies.MyVacanciesScreen
@@ -115,6 +118,10 @@ fun HrAppNavGraph(
 
         composable(route = Screen.Settings.route) {
             SettingsScreen(navController = navController)
+        }
+
+        composable(route = Screen.ChangePassword.route) {
+            ChangePasswordScreen(navController = navController)
         }
     }
 }
