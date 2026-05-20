@@ -3,8 +3,11 @@ package com.example.hr_app.domain.usecases.vacancies
 import com.example.hr_app.domain.models.Vacancy
 import com.example.hr_app.domain.models.VacancyStatus
 import com.example.hr_app.domain.repositories.VacancyRepository
+import javax.inject.Inject
 
-class UpdateVacancyUseCase(private val vacancyRepository: VacancyRepository) {
+class UpdateVacancyUseCase @Inject constructor(
+    private val vacancyRepository: VacancyRepository
+) {
     suspend operator fun invoke(
         id: String,
         title: String,

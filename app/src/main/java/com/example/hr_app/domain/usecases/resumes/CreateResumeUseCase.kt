@@ -2,8 +2,11 @@ package com.example.hr_app.domain.usecases.resumes
 
 import com.example.hr_app.domain.models.Resume
 import com.example.hr_app.domain.repositories.ResumeRepository
+import javax.inject.Inject
 
-class CreateResumeUseCase(private val resumeRepository: ResumeRepository) {
+class CreateResumeUseCase @Inject constructor(
+    private val resumeRepository: ResumeRepository
+) {
     suspend operator fun invoke(
         title: String,
         skills: String?,

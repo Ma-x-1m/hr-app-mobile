@@ -8,8 +8,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.hr_app.presentation.screens.auth.LoginScreen
 import com.example.hr_app.presentation.screens.auth.RegisterScreen
+import com.example.hr_app.presentation.screens.resumes.MyResumesScreen
+import com.example.hr_app.presentation.screens.resumes.ResumeEditScreen
+import com.example.hr_app.presentation.screens.vacancies.MyVacanciesScreen
 import com.example.hr_app.presentation.screens.vacancies.VacanciesListScreen
+import com.example.hr_app.presentation.screens.vacancies.VacancyApplicationsScreen
 import com.example.hr_app.presentation.screens.vacancies.VacancyDetailScreen
+import com.example.hr_app.presentation.screens.vacancies.VacancyEditScreen
 
 @Composable
 fun HrAppNavGraph(
@@ -85,7 +90,7 @@ fun HrAppNavGraph(
             arguments = listOf(navArgument("id") { type = NavType.StringType })
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getString("id") ?: return@composable
-            VacancyApplicationsScreen(id = id, navController = navController)
+            VacancyApplicationsScreen(vacancyId = id, navController = navController)
         }
 
         composable(route = Screen.Conversations.route) {
