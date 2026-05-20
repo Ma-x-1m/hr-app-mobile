@@ -7,6 +7,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.hr_app.presentation.screens.applications.MyApplicationsScreen
+import com.example.hr_app.presentation.screens.chat.ChatScreen
+import com.example.hr_app.presentation.screens.chat.ConversationsScreen
 import com.example.hr_app.presentation.screens.auth.LoginScreen
 import com.example.hr_app.presentation.screens.auth.RegisterScreen
 import com.example.hr_app.presentation.screens.resumes.MyResumesScreen
