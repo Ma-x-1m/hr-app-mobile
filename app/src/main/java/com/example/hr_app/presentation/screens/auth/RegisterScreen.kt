@@ -56,13 +56,14 @@ fun RegisterScreen(
     var validationError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(uiState.user) {
-        val user = uiState.user ?: return@LaunchedEffect
-        val destination = when (user.role) {
-            UserRole.APPLICANT -> Screen.VacanciesList.route
-            UserRole.EMPLOYER -> Screen.MyVacancies.route
-        }
-        navController.navigate(destination) {
-            popUpTo(Screen.Register.route) { inclusive = true }
+        uiState.user?.let { user ->
+            val destination = when (user.role) {
+                UserRole.APPLICANT -> Screen.VacanciesList.route
+                UserRole.EMPLOYER -> Screen.MyVacancies.route
+            }
+            navController.navigate(destination) {
+                popUpTo(0) { inclusive = true }
+            }
         }
     }
 

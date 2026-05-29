@@ -1,10 +1,11 @@
 package com.example.hr_app.presentation.screens.applications
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,50 +13,47 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.NavHostController
 import com.example.hr_app.domain.models.ApplicationStatus
 import com.example.hr_app.domain.models.JobApplication
-import com.example.hr_app.presentation.components.ApplicantBottomBar
 import com.example.hr_app.presentation.components.ApplicationCard
 import com.example.hr_app.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyApplicationsScreen(
-    navController: NavController,
-    viewModel: MyApplicationsViewModel = hiltViewModel()
+    navController: NavHostController,
+    viewModel: ApplicationsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Мои отклики") })
-        },
-        bottomBar = {
-            ApplicantBottomBar(
-                navController = navController,
-                currentRoute = currentRoute
-            )
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refresh()
         }
-    ) { padding ->
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(title = { Text("Мои отклики") })
+
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .fillMaxWidth()
+                .weight(1f)
         ) {
             when {
                 uiState.isLoading && uiState.applications.isEmpty() && uiState.error == null -> {
@@ -65,7 +63,7 @@ fun MyApplicationsScreen(
                 uiState.error != null && uiState.applications.isEmpty() -> {
                     ErrorContent(
                         message = uiState.error.orEmpty(),
-                        onRetry = { viewModel.loadApplications() },
+                        onRetry = { viewModel.loadData() },
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
@@ -84,14 +82,14 @@ fun MyApplicationsScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (uiState.error != null) {
                             item {
                                 ErrorContent(
                                     message = uiState.error.orEmpty(),
-                                    onRetry = { viewModel.loadApplications() }
+                                    onRetry = { viewModel.loadData() }
                                 )
                             }
                         }
@@ -106,8 +104,7 @@ fun MyApplicationsScreen(
                                     handleApplicationClick(
                                         application = application,
                                         viewModel = viewModel,
-                                        navController = navController,
-                                        context = context
+                                        navController = navController
                                     )
                                 }
                             )
@@ -121,24 +118,12 @@ fun MyApplicationsScreen(
 
 private fun handleApplicationClick(
     application: JobApplication,
-    viewModel: MyApplicationsViewModel,
-    navController: NavController,
-    context: android.content.Context
+    viewModel: ApplicationsViewModel,
+    navController: NavHostController
 ) {
-    when (application.status) {
-        ApplicationStatus.ACCEPTED -> {
-            val conversationId = viewModel.getConversationId(application.id)
-            if (conversationId != null) {
-                navController.navigate(Screen.ChatScreen.createRoute(conversationId))
-            }
-        }
-        else -> {
-            Toast.makeText(
-                context,
-                "Отклик ещё не принят",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
+    val conversationId = viewModel.getConversationId(application.id)
+    if (application.status == ApplicationStatus.ACCEPTED && conversationId != null) {
+        navController.navigate(Screen.Chat.createRoute(conversationId))
     }
 }
 

@@ -26,7 +26,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,7 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.hr_app.domain.models.ResumeStatus
 
 private val statusOptions = listOf("active", "hidden")
@@ -52,8 +51,8 @@ private val statusOptions = listOf("active", "hidden")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResumeEditScreen(
-    id: String?,
-    navController: NavController,
+    resumeId: String?,
+    navController: NavHostController,
     viewModel: ResumeEditViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -67,17 +66,22 @@ fun ResumeEditScreen(
     var titleError by remember { mutableStateOf(false) }
     var statusExpanded by remember { mutableStateOf(false) }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
+    val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        val fileName = queryDisplayName(context, uri) ?: "document.pdf"
-        viewModel.onFileSelected(uri, fileName)
+    ) { uri ->
+        uri?.let {
+            val fileName = context.contentResolver.query(uri, null, null, null, null)
+                ?.use { cursor ->
+                    cursor.moveToFirst()
+                    cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME))
+                } ?: "resume.pdf"
+            viewModel.onFileSelected(uri, fileName)
+        }
     }
 
-    LaunchedEffect(id) {
-        if (id != null) {
-            viewModel.loadResume(id)
+    LaunchedEffect(resumeId) {
+        if (resumeId != null) {
+            viewModel.loadResume(resumeId)
         }
     }
 
@@ -104,7 +108,7 @@ fun ResumeEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (id != null) "Редактирование" else "Новое резюме") },
+                title = { Text(if (resumeId != null) "Редактирование" else "Новое резюме") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -122,11 +126,11 @@ fun ResumeEditScreen(
                 .padding(padding)
         ) {
             when {
-                uiState.isLoading && uiState.resume == null && id != null -> {
+                uiState.isLoading && uiState.resume == null && resumeId != null -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
-                uiState.error != null && uiState.resume == null && id != null -> {
+                uiState.error != null && uiState.resume == null && resumeId != null -> {
                     Text(
                         text = uiState.error.orEmpty(),
                         color = MaterialTheme.colorScheme.error,
@@ -155,7 +159,7 @@ fun ResumeEditScreen(
                                 title = it
                                 if (titleError && it.isNotBlank()) titleError = false
                             },
-                            label = { Text("Название резюме") },
+                            label = { Text("Название") },
                             isError = titleError,
                             supportingText = if (titleError) {
                                 { Text("Название обязательно") }
@@ -177,7 +181,7 @@ fun ResumeEditScreen(
                         OutlinedTextField(
                             value = experience,
                             onValueChange = { experience = it },
-                            label = { Text("Опыт работы") },
+                            label = { Text("Опыт") },
                             minLines = 3,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -223,8 +227,8 @@ fun ResumeEditScreen(
                             }
                         }
 
-                        OutlinedButton(
-                            onClick = { filePickerLauncher.launch("application/pdf") },
+                        Button(
+                            onClick = { launcher.launch("application/pdf") },
                             enabled = !uiState.isLoading && !uiState.isUploadingFile,
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -233,17 +237,9 @@ fun ResumeEditScreen(
 
                         uiState.selectedFileName?.let { fileName ->
                             Text(
-                                text = "Выбран файл: $fileName",
+                                text = fileName,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        uiState.resume?.resumeFileUrl?.let { url ->
-                            Text(
-                                text = "Файл уже прикреплён: ${extractFileName(url)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
                             )
                         }
 
@@ -291,18 +287,4 @@ fun ResumeEditScreen(
 private fun parseResumeStatus(value: String): ResumeStatus = when (value.lowercase()) {
     "hidden" -> ResumeStatus.HIDDEN
     else -> ResumeStatus.ACTIVE
-}
-
-private fun extractFileName(url: String): String {
-    return url.substringAfterLast('/').substringBefore('?').ifBlank { "resume.pdf" }
-}
-
-private fun queryDisplayName(context: android.content.Context, uri: Uri): String? {
-    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-        if (nameIndex >= 0 && cursor.moveToFirst()) {
-            return cursor.getString(nameIndex)
-        }
-    }
-    return null
 }

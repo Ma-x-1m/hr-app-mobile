@@ -10,9 +10,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import com.example.hr_app.presentation.navigation.Screen
+import androidx.navigation.NavHostController
+import com.example.hr_app.presentation.screens.TAB_CONVERSATIONS
+import com.example.hr_app.presentation.screens.TAB_MY_VACANCIES
+import com.example.hr_app.presentation.screens.TAB_PROFILE
 
 private data class EmployerBottomBarItem(
     val route: String,
@@ -21,14 +22,14 @@ private data class EmployerBottomBarItem(
 )
 
 private val employerItems = listOf(
-    EmployerBottomBarItem(Screen.MyVacancies.route, "Мои вакансии", Icons.Default.Work),
-    EmployerBottomBarItem(Screen.Conversations.route, "Чаты", Icons.AutoMirrored.Filled.Chat),
-    EmployerBottomBarItem(Screen.Profile.route, "Профиль", Icons.Default.Person)
+    EmployerBottomBarItem(TAB_MY_VACANCIES, "Мои вакансии", Icons.Default.Work),
+    EmployerBottomBarItem(TAB_CONVERSATIONS, "Чаты", Icons.AutoMirrored.Filled.Chat),
+    EmployerBottomBarItem(TAB_PROFILE, "Профиль", Icons.Default.Person)
 )
 
 @Composable
 fun EmployerBottomBar(
-    navController: NavController,
+    navController: NavHostController,
     currentRoute: String?
 ) {
     NavigationBar {
@@ -38,9 +39,7 @@ fun EmployerBottomBar(
                 onClick = {
                     if (currentRoute == item.route) return@NavigationBarItem
                     navController.navigate(item.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }

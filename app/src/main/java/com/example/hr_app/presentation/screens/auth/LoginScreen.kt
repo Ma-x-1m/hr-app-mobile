@@ -46,13 +46,14 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.user) {
-        val user = uiState.user ?: return@LaunchedEffect
-        val destination = when (user.role) {
-            UserRole.APPLICANT -> Screen.VacanciesList.route
-            UserRole.EMPLOYER -> Screen.MyVacancies.route
-        }
-        navController.navigate(destination) {
-            popUpTo(Screen.Login.route) { inclusive = true }
+        uiState.user?.let { user ->
+            val destination = when (user.role) {
+                UserRole.APPLICANT -> Screen.VacanciesList.route
+                UserRole.EMPLOYER -> Screen.MyVacancies.route
+            }
+            navController.navigate(destination) {
+                popUpTo(0) { inclusive = true }
+            }
         }
     }
 

@@ -115,7 +115,7 @@ fun ChangePasswordScreen(
                     confirmPassword = it
                     confirmPasswordError = null
                 },
-                label = { Text("Подтвердите новый пароль") },
+                label = { Text("Подтверждение") },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 isError = confirmPasswordError != null,

@@ -46,7 +46,7 @@ private val statusOptions = listOf("open", "closed", "draft")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VacancyEditScreen(
-    id: String?,
+    vacancyId: String?,
     navController: NavController,
     viewModel: VacancyEditViewModel = hiltViewModel()
 ) {
@@ -65,9 +65,9 @@ fun VacancyEditScreen(
     var experienceExpanded by remember { mutableStateOf(false) }
     var statusExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(id) {
-        if (id != null) {
-            viewModel.loadVacancy(id)
+    LaunchedEffect(vacancyId) {
+        if (vacancyId != null) {
+            viewModel.loadVacancy(vacancyId)
         }
     }
 
@@ -87,7 +87,6 @@ fun VacancyEditScreen(
 
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
-            viewModel.clearSaved()
             navController.popBackStack()
         }
     }
@@ -95,7 +94,7 @@ fun VacancyEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (id != null) "Редактирование" else "Новая вакансия") },
+                title = { Text(if (vacancyId != null) "Редактирование" else "Новая вакансия") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -113,11 +112,11 @@ fun VacancyEditScreen(
                 .padding(padding)
         ) {
             when {
-                uiState.isLoading && uiState.vacancy == null && id != null -> {
+                uiState.isLoading && uiState.vacancy == null && vacancyId != null -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
-                uiState.error != null && uiState.vacancy == null && id != null -> {
+                uiState.error != null && uiState.vacancy == null && vacancyId != null -> {
                     Text(
                         text = uiState.error.orEmpty(),
                         color = MaterialTheme.colorScheme.error,
@@ -142,7 +141,7 @@ fun VacancyEditScreen(
                                 title = it
                                 if (titleError && it.isNotBlank()) titleError = false
                             },
-                            label = { Text("Название вакансии") },
+                            label = { Text("Название") },
                             isError = titleError,
                             supportingText = if (titleError) {
                                 { Text("Название обязательно") }
@@ -211,7 +210,7 @@ fun VacancyEditScreen(
                                 value = experience,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Опыт работы") },
+                                label = { Text("Опыт") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = experienceExpanded) },
                                 modifier = Modifier
                                     .menuAnchor()

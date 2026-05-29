@@ -14,5 +14,5 @@ data class UserResponse(
     val email: String,
     val name: String,
     val role: String,
-    val createdAt: String
+    val createdAt: String? = null
 )

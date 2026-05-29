@@ -12,10 +12,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,14 +35,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.hr_app.domain.models.Message
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
     conversationId: String,
-    navController: NavController,
+    navController: NavHostController,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -51,7 +50,6 @@ fun ChatScreen(
     val listState = rememberLazyListState()
 
     LaunchedEffect(conversationId) {
-        viewModel.loadMessages(conversationId)
         viewModel.startPolling(conversationId)
     }
 
@@ -94,16 +92,12 @@ fun ChatScreen(
                 )
                 IconButton(
                     onClick = {
-                        val text = messageText
+                        viewModel.sendMessage(conversationId, messageText)
                         messageText = ""
-                        viewModel.sendMessage(conversationId, text)
                     },
                     enabled = messageText.isNotBlank() && !uiState.isSending
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Отправить"
-                    )
+                    Icon(Icons.Default.Send, contentDescription = null)
                 }
             }
         }
@@ -113,35 +107,27 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when {
-                uiState.isLoading && uiState.messages.isEmpty() -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        state = listState,
-                        reverseLayout = true,
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(
-                            items = uiState.messages,
-                            key = { it.id }
-                        ) { message ->
-                            MessageBubble(
-                                message = message,
-                                isOwn = message.senderId == uiState.currentUserId
-                            )
-                        }
-                    }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState,
+                reverseLayout = true,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(
+                    items = uiState.messages.reversed(),
+                    key = { it.id }
+                ) { message ->
+                    MessageBubble(
+                        message = message,
+                        isOwn = message.senderId == uiState.currentUserId
+                    )
                 }
             }
 
-            if (uiState.error != null) {
+            uiState.error?.let { error ->
                 Text(
-                    text = uiState.error.orEmpty(),
+                    text = error,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier
@@ -154,40 +140,44 @@ fun ChatScreen(
 }
 
 @Composable
-private fun MessageBubble(
+fun MessageBubble(
     message: Message,
     isOwn: Boolean
 ) {
-    Column(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start
+        horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start
     ) {
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = if (isOwn) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                }
-            ),
+        Column(
+            horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start,
             modifier = Modifier.fillMaxWidth(0.85f)
         ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isOwn) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    }
+                )
+            ) {
+                Text(
+                    text = message.content,
+                    color = if (isOwn) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
             Text(
-                text = message.content,
-                color = if (isOwn) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(12.dp)
+                text = message.sentAt.ifBlank { "..." },
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp)
             )
         }
-        Text(
-            text = message.sentAt.ifBlank { "..." },
-            fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp)
-        )
     }
 }

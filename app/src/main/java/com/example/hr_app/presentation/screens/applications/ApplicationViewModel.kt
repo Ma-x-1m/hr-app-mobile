@@ -6,6 +6,7 @@ import com.example.hr_app.domain.models.Resume
 import com.example.hr_app.domain.usecases.applications.ApplyToVacancyUseCase
 import com.example.hr_app.domain.usecases.resumes.GetMyResumesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import retrofit2.HttpException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,9 +69,14 @@ class ApplicationViewModel @Inject constructor(
                     )
                 },
                 onFailure = { throwable ->
+                    val message = when {
+                        throwable is HttpException && throwable.code() == 409 ->
+                            "Вы уже откликались на эту вакансию"
+                        else -> throwable.message ?: "Не удалось отправить отклик"
+                    }
                     _uiState.value = _uiState.value.copy(
                         isApplying = false,
-                        applyError = throwable.message
+                        applyError = message
                     )
                 }
             )

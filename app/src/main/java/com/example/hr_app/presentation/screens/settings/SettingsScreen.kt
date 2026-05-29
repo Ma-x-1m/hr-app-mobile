@@ -2,12 +2,10 @@ package com.example.hr_app.presentation.screens.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,7 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,53 +27,62 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import com.example.hr_app.data.local.ThemeMode
+import androidx.navigation.NavHostController
 import com.example.hr_app.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    navController: NavController,
+    navController: NavHostController,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showThemeDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
     var deleteConfirmStep by remember { mutableStateOf(0) }
 
-    LaunchedEffect(uiState.isDeleted) {
-        if (uiState.isDeleted) {
+    LaunchedEffect(uiState.isDeleted, uiState.isLoggedOut) {
+        if (uiState.isDeleted || uiState.isLoggedOut) {
             navController.navigate(Screen.Login.route) {
                 popUpTo(0) { inclusive = true }
             }
         }
     }
 
-    if (showThemeDialog) {
-        ThemePickerDialog(
-            currentTheme = uiState.currentTheme,
-            onDismiss = { showThemeDialog = false },
-            onSelect = { mode ->
-                viewModel.setTheme(mode)
-                showThemeDialog = false
-            }
-        )
-    }
-
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
             title = { Text("О приложении") },
-            text = { Text("HR App v1.0.0, Курсовая работа") },
+            text = { Text("HR App v1.0.0") },
             confirmButton = {
                 TextButton(onClick = { showAboutDialog = false }) {
                     Text("OK")
+                }
+            }
+        )
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Выйти из аккаунта?") },
+            text = { Text("Вы будете перенаправлены на экран входа.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        viewModel.logout()
+                    }
+                ) {
+                    Text("Выйти")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Отмена")
                 }
             }
         )
@@ -87,7 +93,7 @@ fun SettingsScreen(
             AlertDialog(
                 onDismissRequest = { deleteConfirmStep = 0 },
                 title = { Text("Удалить аккаунт?") },
-                text = { Text("Вы уверены?") },
+                text = { Text("Вы уверены, что хотите удалить аккаунт?") },
                 confirmButton = {
                     TextButton(onClick = { deleteConfirmStep = 2 }) {
                         Text("Далее")
@@ -145,28 +151,6 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                text = "Внешний вид",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            ListItem(
-                headlineContent = { Text("Тема оформления") },
-                supportingContent = { Text(themeLabel(uiState.currentTheme)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showThemeDialog = true }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            Text(
-                text = "Аккаунт",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
             ListItem(
                 headlineContent = { Text("Сменить пароль") },
                 modifier = Modifier
@@ -181,6 +165,9 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .clickable { showAboutDialog = true }
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
             ListItem(
                 headlineContent = {
                     Text(
@@ -191,6 +178,12 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { deleteConfirmStep = 1 }
+            )
+            ListItem(
+                headlineContent = { Text("Выйти") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showLogoutDialog = true }
             )
 
             uiState.error?.let { message ->
@@ -203,56 +196,4 @@ fun SettingsScreen(
             }
         }
     }
-}
-
-@Composable
-private fun ThemePickerDialog(
-    currentTheme: ThemeMode,
-    onDismiss: () -> Unit,
-    onSelect: (ThemeMode) -> Unit
-) {
-    val options = listOf(
-        ThemeMode.LIGHT to "Светлая",
-        ThemeMode.DARK to "Тёмная",
-        ThemeMode.SYSTEM to "Системная"
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Тема оформления") },
-        text = {
-            Column {
-                options.forEach { (mode, label) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = currentTheme == mode,
-                                onClick = { onSelect(mode) },
-                                role = Role.RadioButton
-                            )
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = currentTheme == mode,
-                            onClick = null
-                        )
-                        Text(text = label, modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Закрыть")
-            }
-        }
-    )
-}
-
-private fun themeLabel(mode: ThemeMode): String = when (mode) {
-    ThemeMode.LIGHT -> "Светлая"
-    ThemeMode.DARK -> "Тёмная"
-    ThemeMode.SYSTEM -> "Системная"
 }

@@ -3,7 +3,9 @@ package com.example.hr_app.presentation.screens.resumes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,11 +18,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,22 +32,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.NavHostController
 import com.example.hr_app.domain.models.Resume
-import com.example.hr_app.presentation.components.ApplicantBottomBar
 import com.example.hr_app.presentation.components.ResumeCard
 import com.example.hr_app.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyResumesScreen(
-    navController: NavController,
+    navController: NavHostController,
     viewModel: ResumesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val lifecycleOwner = LocalLifecycleOwner.current
     var resumeToDelete by remember { mutableStateOf<Resume?>(null) }
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refresh()
+        }
+    }
 
     resumeToDelete?.let { resume ->
         AlertDialog(
@@ -70,86 +79,82 @@ fun MyResumesScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(title = { Text("Мои резюме") })
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate(Screen.ResumeEdit.createRoute()) }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Создать резюме")
-            }
-        },
-        bottomBar = {
-            ApplicantBottomBar(
-                navController = navController,
-                currentRoute = currentRoute
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            when {
-                uiState.isLoading && uiState.resumes.isEmpty() && uiState.error == null -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
+                when {
+                    uiState.isLoading && uiState.resumes.isEmpty() && uiState.error == null -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
 
-                uiState.error != null && uiState.resumes.isEmpty() -> {
-                    ErrorContent(
-                        message = uiState.error.orEmpty(),
-                        onRetry = { viewModel.loadResumes() },
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+                    uiState.error != null && uiState.resumes.isEmpty() -> {
+                        ErrorContent(
+                            message = uiState.error.orEmpty(),
+                            onRetry = { viewModel.loadResumes() },
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
 
-                uiState.resumes.isEmpty() && !uiState.isLoading -> {
-                    Text(
-                        text = "У вас пока нет резюме",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp)
-                    )
-                }
+                    uiState.resumes.isEmpty() && !uiState.isLoading -> {
+                        Text(
+                            text = "У вас пока нет резюме",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(16.dp)
+                        )
+                    }
 
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        if (uiState.error != null) {
-                            item {
-                                ErrorContent(
-                                    message = uiState.error.orEmpty(),
-                                    onRetry = { viewModel.loadResumes() }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            if (uiState.error != null) {
+                                item {
+                                    ErrorContent(
+                                        message = uiState.error.orEmpty(),
+                                        onRetry = { viewModel.loadResumes() }
+                                    )
+                                }
+                            }
+
+                            items(
+                                items = uiState.resumes,
+                                key = { it.id }
+                            ) { resume ->
+                                ResumeCard(
+                                    resume = resume,
+                                    onEdit = {
+                                        navController.navigate(
+                                            Screen.ResumeEdit.createRoute(resume.id)
+                                        )
+                                    },
+                                    onDelete = { resumeToDelete = resume },
+                                    onToggle = { viewModel.toggleStatus(resume) }
                                 )
                             }
-                        }
-
-                        items(
-                            items = uiState.resumes,
-                            key = { it.id }
-                        ) { resume ->
-                            ResumeCard(
-                                resume = resume,
-                                onEdit = {
-                                    navController.navigate(
-                                        Screen.ResumeEdit.createRoute(resume.id)
-                                    )
-                                },
-                                onDelete = { resumeToDelete = resume },
-                                onToggleVisibility = { viewModel.toggleVisibility(resume) }
-                            )
                         }
                     }
                 }
             }
+        }
+
+        FloatingActionButton(
+            onClick = { navController.navigate(Screen.ResumeEdit.route) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Создать резюме")
         }
     }
 }

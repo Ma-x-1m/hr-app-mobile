@@ -3,74 +3,55 @@ package com.example.hr_app.presentation.screens.chat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.hr_app.domain.models.Conversation
-import com.example.hr_app.domain.models.UserRole
-import com.example.hr_app.presentation.components.ApplicantBottomBar
-import com.example.hr_app.presentation.components.EmployerBottomBar
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.NavHostController
+import com.example.hr_app.presentation.components.ConversationCard
 import com.example.hr_app.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConversationsScreen(
-    navController: NavController,
-    viewModel: ConversationsViewModel = hiltViewModel(),
-    bottomBar: (@Composable () -> Unit)? = null
+    navController: NavHostController,
+    viewModel: ConversationsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Чаты") })
-        },
-        bottomBar = bottomBar ?: {
-            when (uiState.userRole) {
-                UserRole.EMPLOYER -> {
-                    EmployerBottomBar(
-                        navController = navController,
-                        currentRoute = currentRoute
-                    )
-                }
-                else -> {
-                    ApplicantBottomBar(
-                        navController = navController,
-                        currentRoute = currentRoute
-                    )
-                }
-            }
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.refresh()
         }
-    ) { padding ->
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(title = { Text("Чаты") })
+
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .fillMaxWidth()
+                .weight(1f)
         ) {
             when {
                 uiState.isLoading && uiState.conversations.isEmpty() && uiState.error == null -> {
@@ -87,7 +68,7 @@ fun ConversationsScreen(
 
                 uiState.conversations.isEmpty() && !uiState.isLoading -> {
                     Text(
-                        text = "Чатов пока нет",
+                        text = "Чатов пока нет. Дождитесь принятия отклика",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
@@ -99,7 +80,7 @@ fun ConversationsScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (uiState.error != null) {
@@ -119,7 +100,7 @@ fun ConversationsScreen(
                                 conversation = conversation,
                                 onClick = {
                                     navController.navigate(
-                                        Screen.ChatScreen.createRoute(conversation.id)
+                                        Screen.Chat.createRoute(conversation.id)
                                     )
                                 }
                             )
@@ -127,44 +108,6 @@ fun ConversationsScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun ConversationCard(
-    conversation: Conversation,
-    onClick: () -> Unit
-) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Беседа: ${conversation.id}",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = conversation.createdAt,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

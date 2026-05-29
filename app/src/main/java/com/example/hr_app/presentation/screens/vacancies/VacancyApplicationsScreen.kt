@@ -1,10 +1,9 @@
 package com.example.hr_app.presentation.screens.vacancies
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -37,27 +35,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.hr_app.domain.models.ApplicationStatus
 import com.example.hr_app.domain.models.JobApplication
+import com.example.hr_app.presentation.components.ApplicationStatusBadge
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VacancyApplicationsScreen(
     vacancyId: String,
-    navController: NavController,
+    navController: NavHostController,
     viewModel: VacancyApplicationsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedApplication by remember { mutableStateOf<JobApplication?>(null) }
-
-    LaunchedEffect(vacancyId) {
-        viewModel.loadApplications(vacancyId)
-    }
 
     LaunchedEffect(uiState.statusUpdateSuccess) {
         if (uiState.statusUpdateSuccess) {
@@ -71,13 +65,13 @@ fun VacancyApplicationsScreen(
         StatusChangeDialog(
             onDismiss = { selectedApplication = null },
             onViewed = {
-                viewModel.updateStatus(application.id, ApplicationStatus.VIEWED, vacancyId)
+                viewModel.updateStatus(application.id, ApplicationStatus.VIEWED)
             },
             onAccept = {
-                viewModel.updateStatus(application.id, ApplicationStatus.ACCEPTED, vacancyId)
+                viewModel.updateStatus(application.id, ApplicationStatus.ACCEPTED)
             },
             onReject = {
-                viewModel.updateStatus(application.id, ApplicationStatus.REJECTED, vacancyId)
+                viewModel.updateStatus(application.id, ApplicationStatus.REJECTED)
             }
         )
     }
@@ -141,14 +135,14 @@ fun VacancyApplicationsScreen(
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(
                             items = uiState.applications,
                             key = { it.id }
                         ) { application ->
-                            ApplicationCard(
+                            VacancyApplicationCard(
                                 application = application,
                                 onClick = { selectedApplication = application }
                             )
@@ -161,62 +155,32 @@ fun VacancyApplicationsScreen(
 }
 
 @Composable
-private fun ApplicationCard(
+private fun VacancyApplicationCard(
     application: JobApplication,
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Резюме: ${application.resumeId}",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = application.createdAt,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-            StatusBadge(status = application.status)
+            Text(
+                text = application.resumeId,
+                style = MaterialTheme.typography.titleMedium
+            )
+            ApplicationStatusBadge(status = application.status)
+            Text(
+                text = application.createdAt,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-    }
-}
-
-@Composable
-private fun StatusBadge(status: ApplicationStatus) {
-    val (containerColor, contentColor) = when (status) {
-        ApplicationStatus.PENDING -> MaterialTheme.colorScheme.surfaceVariant to
-            MaterialTheme.colorScheme.onSurfaceVariant
-        ApplicationStatus.VIEWED -> MaterialTheme.colorScheme.primaryContainer to
-            MaterialTheme.colorScheme.onPrimaryContainer
-        ApplicationStatus.REJECTED -> MaterialTheme.colorScheme.errorContainer to
-            MaterialTheme.colorScheme.onErrorContainer
-        ApplicationStatus.ACCEPTED -> Color(0xFFC8E6C9) to Color(0xFF1B5E20)
-    }
-
-    Surface(
-        color = containerColor,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            text = status.name,
-            color = contentColor,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
     }
 }
 
@@ -232,15 +196,23 @@ private fun StatusChangeDialog(
         title = { Text("Изменить статус") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Выберите новый статус отклика")
-                TextButton(onClick = onViewed) {
-                    Text("Просмотрено")
-                }
-                TextButton(onClick = onAccept) {
+                TextButton(
+                    onClick = onAccept,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Принять")
                 }
-                TextButton(onClick = onReject) {
+                TextButton(
+                    onClick = onReject,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Отклонить")
+                }
+                TextButton(
+                    onClick = onViewed,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Просмотрено")
                 }
             }
         },

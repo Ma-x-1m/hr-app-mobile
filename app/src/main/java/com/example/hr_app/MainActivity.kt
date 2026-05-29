@@ -46,9 +46,9 @@ class MainActivity : ComponentActivity() {
             }
             HrAppTheme(darkTheme = darkTheme) {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    val state by splashViewModel.state.collectAsState()
+                    val startDestination by splashViewModel.startDestination.collectAsState()
 
-                    if (state.isLoading || state.startDestination == null) {
+                    if (startDestination == null) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
                         val navController = rememberNavController()
                         HrAppNavGraph(
                             navController = navController,
-                            startDestination = state.startDestination!!
+                            startDestination = startDestination!!
                         )
                     }
                 }

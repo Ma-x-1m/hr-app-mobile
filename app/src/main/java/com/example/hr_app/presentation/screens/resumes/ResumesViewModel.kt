@@ -69,7 +69,7 @@ class ResumesViewModel @Inject constructor(
         }
     }
 
-    fun toggleVisibility(resume: Resume) {
+    fun toggleStatus(resume: Resume) {
         val newStatus = if (resume.status == ResumeStatus.ACTIVE) {
             ResumeStatus.HIDDEN
         } else {

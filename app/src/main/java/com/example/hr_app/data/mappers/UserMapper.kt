@@ -9,5 +9,5 @@ fun UserResponse.toDomain(): User = User(
     email = email,
     name = name,
     role = UserRole.fromString(role),
-    createdAt = createdAt
+    createdAt = createdAt ?: ""
 )

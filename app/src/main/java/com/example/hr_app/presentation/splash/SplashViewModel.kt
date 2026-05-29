@@ -12,39 +12,31 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class SplashState(
-    val isLoading: Boolean = true,
-    val startDestination: String? = null
-)
-
 @HiltViewModel
 class SplashViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SplashState())
-    val state: StateFlow<SplashState> = _state.asStateFlow()
+    private val _startDestination = MutableStateFlow<String?>(null)
+    val startDestination: StateFlow<String?> = _startDestination.asStateFlow()
 
     init {
-        resolveStartDestination()
-    }
-
-    private fun resolveStartDestination() {
         viewModelScope.launch {
-            val destination = if (authRepository.isLoggedIn()) {
-                authRepository.getCurrentUser().fold(
-                    onSuccess = { user ->
-                        when (user.role) {
-                            UserRole.APPLICANT -> Screen.VacanciesList.route
-                            UserRole.EMPLOYER -> Screen.MyVacancies.route
-                        }
-                    },
-                    onFailure = { Screen.Login.route }
-                )
-            } else {
-                Screen.Login.route
+            if (!authRepository.isLoggedIn()) {
+                _startDestination.value = Screen.Login.route
+                return@launch
             }
-            _state.value = SplashState(isLoading = false, startDestination = destination)
+            authRepository.getCurrentUser().fold(
+                onSuccess = { user ->
+                    _startDestination.value = when (user.role) {
+                        UserRole.APPLICANT -> Screen.VacanciesList.route
+                        UserRole.EMPLOYER -> Screen.MyVacancies.route
+                    }
+                },
+                onFailure = {
+                    _startDestination.value = Screen.Login.route
+                }
+            )
         }
     }
 }

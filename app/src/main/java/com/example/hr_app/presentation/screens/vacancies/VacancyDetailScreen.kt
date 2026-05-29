@@ -41,15 +41,17 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import com.example.hr_app.presentation.components.formatVacancyLocation
+import com.example.hr_app.presentation.components.formatVacancySalary
 import com.example.hr_app.presentation.screens.applications.ApplicationUiState
 import com.example.hr_app.presentation.screens.applications.ApplicationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VacancyDetailScreen(
-    id: String,
-    navController: NavController,
+    vacancyId: String,
+    navController: NavHostController,
     viewModel: VacanciesViewModel = hiltViewModel(),
     applicationViewModel: ApplicationViewModel = hiltViewModel()
 ) {
@@ -59,8 +61,8 @@ fun VacancyDetailScreen(
     var showDialog by remember { mutableStateOf(false) }
     var selectedResumeId by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(id) {
-        viewModel.loadVacancyById(id)
+    LaunchedEffect(vacancyId) {
+        viewModel.loadVacancyById(vacancyId)
     }
 
     LaunchedEffect(showDialog) {
@@ -114,7 +116,7 @@ fun VacancyDetailScreen(
                 .padding(padding)
         ) {
             when {
-                uiState.isLoading -> {
+                uiState.isLoading && vacancy == null -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
@@ -143,20 +145,16 @@ fun VacancyDetailScreen(
                             fontWeight = FontWeight.Bold
                         )
 
-                        if (vacancy.salaryFrom != null && vacancy.salaryTo != null) {
+                        formatVacancySalary(vacancy.salaryFrom, vacancy.salaryTo)?.let { salary ->
                             Text(
-                                text = "${vacancy.salaryFrom} - ${vacancy.salaryTo} ₽",
+                                text = salary,
                                 style = MaterialTheme.typography.titleMedium
                             )
                         }
 
-                        val locationParts = listOfNotNull(
-                            vacancy.city?.takeIf { it.isNotBlank() },
-                            vacancy.experience?.takeIf { it.isNotBlank() }
-                        )
-                        if (locationParts.isNotEmpty()) {
+                        formatVacancyLocation(vacancy.city, vacancy.experience)?.let { location ->
                             Text(
-                                text = locationParts.joinToString(" · "),
+                                text = location,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -215,7 +213,7 @@ fun VacancyDetailScreen(
             onDismiss = { showDialog = false },
             onApply = {
                 val resumeId = selectedResumeId ?: return@ApplyDialog
-                applicationViewModel.apply(resumeId, id)
+                applicationViewModel.apply(resumeId, vacancyId)
             }
         )
     }

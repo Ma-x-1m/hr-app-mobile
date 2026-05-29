@@ -1,12 +1,12 @@
 package com.example.hr_app.presentation.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.Card
@@ -30,10 +30,10 @@ fun ApplicationCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
@@ -47,7 +47,7 @@ fun ApplicationCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Вакансия: ${application.vacancyId}",
+                    text = application.vacancyId,
                     style = MaterialTheme.typography.titleMedium
                 )
                 ApplicationStatusBadge(status = application.status)
@@ -76,24 +76,24 @@ fun ApplicationCard(
 fun ApplicationStatusBadge(status: ApplicationStatus) {
     val (containerColor, contentColor, label) = when (status) {
         ApplicationStatus.PENDING -> Triple(
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant,
+            Color(0xFFE0E0E0),
+            Color(0xFF616161),
             "Ожидает"
         )
         ApplicationStatus.VIEWED -> Triple(
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.onPrimaryContainer,
+            Color(0xFFBBDEFB),
+            Color(0xFF1565C0),
             "Просмотрено"
         )
         ApplicationStatus.REJECTED -> Triple(
-            MaterialTheme.colorScheme.errorContainer,
-            MaterialTheme.colorScheme.onErrorContainer,
+            Color(0xFFFFCDD2),
+            Color(0xFFC62828),
             "Отклонено"
         )
         ApplicationStatus.ACCEPTED -> Triple(
             Color(0xFFC8E6C9),
-            Color(0xFF1B5E20),
-            "Принято"
+            Color(0xFF2E7D32),
+            "Принято ✓"
         )
     }
 

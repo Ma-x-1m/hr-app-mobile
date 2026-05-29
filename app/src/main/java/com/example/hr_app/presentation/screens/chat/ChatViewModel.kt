@@ -36,40 +36,54 @@ class ChatViewModel @Inject constructor(
 
     private var pollingJob: Job? = null
 
+    init {
+        loadCurrentUser()
+    }
+
+    fun loadCurrentUser() {
+        viewModelScope.launch {
+            loadCurrentUserInternal()
+        }
+    }
+
+    fun startPolling(conversationId: String) {
+        pollingJob?.cancel()
+        pollingJob = viewModelScope.launch {
+            loadCurrentUserInternal()
+            while (isActive) {
+                loadMessagesInternal(conversationId)
+                delay(5000)
+            }
+        }
+    }
+
     fun loadMessages(conversationId: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-
-            if (_uiState.value.currentUserId == null) {
-                getCurrentUserUseCase().fold(
-                    onSuccess = { user ->
-                        _uiState.value = _uiState.value.copy(currentUserId = user.id)
-                    },
-                    onFailure = { throwable ->
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = throwable.message
-                        )
-                        return@launch
-                    }
-                )
-            }
-
-            getMessagesUseCase(conversationId).fold(
-                onSuccess = { messages ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        messages = messages.toNewestFirst()
-                    )
-                },
-                onFailure = { throwable ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = throwable.message
-                    )
-                }
-            )
+            loadMessagesInternal(conversationId)
         }
+    }
+
+    private suspend fun loadCurrentUserInternal() {
+        getCurrentUserUseCase().fold(
+            onSuccess = { user ->
+                _uiState.value = _uiState.value.copy(currentUserId = user.id)
+            },
+            onFailure = { throwable ->
+                _uiState.value = _uiState.value.copy(error = throwable.message)
+            }
+        )
+    }
+
+    private suspend fun loadMessagesInternal(conversationId: String) {
+        getMessagesUseCase(conversationId).fold(
+            onSuccess = { messages ->
+                _uiState.value = _uiState.value.copy(
+                    messages = messages,
+                    error = null
+                )
+            },
+            onFailure = { /* polling: сохраняем текущий список */ }
+        )
     }
 
     fun sendMessage(conversationId: String, content: String) {
@@ -91,15 +105,15 @@ class ChatViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 isSending = true,
                 error = null,
-                messages = listOf(optimisticMessage) + _uiState.value.messages
+                messages = _uiState.value.messages + optimisticMessage
             )
 
             sendMessageUseCase(conversationId, trimmed).fold(
                 onSuccess = { message ->
                     _uiState.value = _uiState.value.copy(
                         isSending = false,
-                        messages = listOf(message) +
-                            _uiState.value.messages.filter { it.id != tempId }
+                        messages = _uiState.value.messages
+                            .filter { it.id != tempId } + message
                     )
                 },
                 onFailure = { throwable ->
@@ -113,28 +127,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun startPolling(conversationId: String) {
-        pollingJob?.cancel()
-        pollingJob = viewModelScope.launch {
-            while (isActive) {
-                delay(5_000)
-                getMessagesUseCase(conversationId).fold(
-                    onSuccess = { messages ->
-                        _uiState.value = _uiState.value.copy(
-                            messages = messages.toNewestFirst()
-                        )
-                    },
-                    onFailure = { /* keep existing messages on poll failure */ }
-                )
-            }
-        }
-    }
-
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
-    }
-
-    private fun List<Message>.toNewestFirst(): List<Message> {
-        return sortedByDescending { it.sentAt }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -16,10 +17,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hr_app.domain.models.Vacancy
+import java.text.NumberFormat
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+
+private val salaryNumberFormat: NumberFormat =
+    NumberFormat.getNumberInstance(Locale("ru", "RU"))
 
 @Composable
 fun VacancyCard(
@@ -29,7 +34,7 @@ fun VacancyCard(
 ) {
     Card(
         onClick = onClick,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = modifier.fillMaxWidth()
     ) {
@@ -41,7 +46,7 @@ fun VacancyCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            formatSalary(vacancy.salaryFrom, vacancy.salaryTo)?.let { salary ->
+            formatVacancySalary(vacancy.salaryFrom, vacancy.salaryTo)?.let { salary ->
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = salary,
@@ -50,7 +55,7 @@ fun VacancyCard(
                 )
             }
 
-            formatLocation(vacancy.city, vacancy.experience)?.let { location ->
+            formatVacancyLocation(vacancy.city, vacancy.experience)?.let { location ->
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = location,
@@ -69,28 +74,21 @@ fun VacancyCard(
     }
 }
 
-private fun formatSalary(from: Int?, to: Int?): String? {
+fun formatVacancySalary(from: Int?, to: Int?): String? {
     if (from == null && to == null) return null
     return when {
-        from != null && to != null -> "${groupThousands(from)} - ${groupThousands(to)} ₽"
-        from != null -> "от ${groupThousands(from)} ₽"
-        else -> "до ${groupThousands(to!!)} ₽"
+        from != null && to != null ->
+            "${salaryNumberFormat.format(from)} - ${salaryNumberFormat.format(to)} ₽"
+        from != null -> "от ${salaryNumberFormat.format(from)} ₽"
+        else -> "до ${salaryNumberFormat.format(to!!)} ₽"
     }
 }
 
-private fun groupThousands(value: Int): String {
-    val text = value.toString()
-    val sb = StringBuilder()
-    val len = text.length
-    for (i in 0 until len) {
-        if (i > 0 && (len - i) % 3 == 0) sb.append(' ')
-        sb.append(text[i])
-    }
-    return sb.toString()
-}
-
-private fun formatLocation(city: String?, experience: String?): String? {
-    val parts = listOfNotNull(city?.takeIf { it.isNotBlank() }, experience?.takeIf { it.isNotBlank() })
+fun formatVacancyLocation(city: String?, experience: String?): String? {
+    val parts = listOfNotNull(
+        city?.takeIf { it.isNotBlank() },
+        experience?.takeIf { it.isNotBlank() }
+    )
     return if (parts.isEmpty()) null else parts.joinToString(" · ")
 }
 

@@ -1,5 +1,6 @@
 package com.example.hr_app.presentation.screens.vacancies
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hr_app.domain.models.ApplicationStatus
@@ -13,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class ApplicationsUiState(
+data class VacancyApplicationsUiState(
     val isLoading: Boolean = false,
     val applications: List<JobApplication> = emptyList(),
     val error: String? = null,
@@ -22,12 +23,19 @@ data class ApplicationsUiState(
 
 @HiltViewModel
 class VacancyApplicationsViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val getApplicationsByVacancyUseCase: GetApplicationsByVacancyUseCase,
     private val updateApplicationStatusUseCase: UpdateApplicationStatusUseCase
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(ApplicationsUiState())
-    val uiState: StateFlow<ApplicationsUiState> = _uiState.asStateFlow()
+    private val vacancyId: String = checkNotNull(savedStateHandle["vacancyId"])
+
+    private val _uiState = MutableStateFlow(VacancyApplicationsUiState())
+    val uiState: StateFlow<VacancyApplicationsUiState> = _uiState.asStateFlow()
+
+    init {
+        loadApplications(vacancyId)
+    }
 
     fun loadApplications(vacancyId: String) {
         viewModelScope.launch {
@@ -49,7 +57,7 @@ class VacancyApplicationsViewModel @Inject constructor(
         }
     }
 
-    fun updateStatus(applicationId: String, status: ApplicationStatus, vacancyId: String) {
+    fun updateStatus(applicationId: String, status: ApplicationStatus) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,

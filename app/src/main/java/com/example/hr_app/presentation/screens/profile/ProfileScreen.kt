@@ -1,6 +1,5 @@
 package com.example.hr_app.presentation.screens.profile
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +13,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -21,7 +22,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -39,14 +40,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.hr_app.domain.models.UserRole
 import com.example.hr_app.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    navController: NavController,
+    navController: NavHostController,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -83,15 +84,13 @@ fun ProfileScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Профиль") })
-        }
-    ) { padding ->
+    Column(modifier = Modifier.fillMaxSize()) {
+        TopAppBar(title = { Text("Профиль") })
+
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .fillMaxWidth()
+                .weight(1f)
         ) {
             when {
                 uiState.isLoading && uiState.user == null -> {
@@ -119,19 +118,19 @@ fun ProfileScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
-                            contentAlignment = Alignment.Center
+                        Surface(
+                            modifier = Modifier.size(80.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary
                         ) {
-                            Text(
-                                text = initialsFromName(user.name),
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = Color.White,
-                                textAlign = TextAlign.Center
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = initialsFromName(user.name),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = Color.White,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
 
                         Text(
@@ -158,18 +157,13 @@ fun ProfileScreen(
                                     UserRole.APPLICANT -> {
                                         ProfilePlaceholderRow("Телефон")
                                         ProfilePlaceholderRow("Город")
-                                        ProfilePlaceholderRow("О себе")
                                     }
                                     UserRole.EMPLOYER -> {
                                         ProfilePlaceholderRow("Компания")
-                                        ProfilePlaceholderRow("Описание")
-                                        ProfilePlaceholderRow("Сайт")
                                     }
                                 }
                             }
                         }
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                         OutlinedButton(
                             onClick = { navController.navigate(Screen.Settings.route) },
@@ -178,11 +172,11 @@ fun ProfileScreen(
                             Text("Настройки")
                         }
 
-                        OutlinedButton(
+                        Button(
                             onClick = { showLogoutDialog = true },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
                             )
                         ) {
                             Text("Выйти")

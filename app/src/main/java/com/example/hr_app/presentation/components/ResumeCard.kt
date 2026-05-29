@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,13 +33,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hr_app.domain.models.Resume
 import com.example.hr_app.domain.models.ResumeStatus
+import java.text.NumberFormat
+import java.util.Locale
+
+private val salaryNumberFormat: NumberFormat =
+    NumberFormat.getNumberInstance(Locale.forLanguageTag("ru-RU"))
 
 @Composable
 fun ResumeCard(
     resume: Resume,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onToggleVisibility: () -> Unit,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -66,8 +71,8 @@ fun ResumeCard(
                     )
                     if (resume.resumeFileUrl != null) {
                         Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = "PDF прикреплён",
+                            imageVector = Icons.Default.AttachFile,
+                            contentDescription = "Файл прикреплён",
                             modifier = Modifier
                                 .padding(start = 8.dp)
                                 .size(20.dp),
@@ -79,7 +84,7 @@ fun ResumeCard(
                 resume.desiredSalary?.let { salary ->
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Желаемая зарплата: ${formatSalary(salary)} ₽",
+                        text = "Желаемая зарплата: ${salaryNumberFormat.format(salary)} ₽",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -120,7 +125,7 @@ fun ResumeCard(
                         },
                         onClick = {
                             menuExpanded = false
-                            onToggleVisibility()
+                            onToggle()
                         }
                     )
                     DropdownMenuItem(
@@ -134,15 +139,4 @@ fun ResumeCard(
             }
         }
     }
-}
-
-private fun formatSalary(value: Int): String {
-    val text = value.toString()
-    val sb = StringBuilder()
-    val len = text.length
-    for (i in 0 until len) {
-        if (i > 0 && (len - i) % 3 == 0) sb.append('\u00A0')
-        sb.append(text[i])
-    }
-    return sb.toString()
 }
